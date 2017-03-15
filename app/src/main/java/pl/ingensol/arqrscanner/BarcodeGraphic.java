@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.gms.samples.vision.barcodereader;
+package pl.ingensol.arqrscanner;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.Point;
+import android.graphics.Rect;
 
-import com.google.android.gms.samples.vision.barcodereader.ui.camera.GraphicOverlay;
+import pl.ingensol.arqrscanner.camera.GraphicOverlay;
 import com.google.android.gms.vision.barcode.Barcode;
 
 /**
@@ -91,14 +92,20 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         }
 
         // Draws the bounding box around the barcode.
-        RectF rect = new RectF(barcode.getBoundingBox());
-        rect.left = translateX(rect.left);
-        rect.top = translateY(rect.top);
-        rect.right = translateX(rect.right);
-        rect.bottom = translateY(rect.bottom);
-        canvas.drawRect(rect, mRectPaint);
+        for (int i = 0; i < barcode.cornerPoints.length; i++) {
+            Point from = barcode.cornerPoints[i];
+            Point to = barcode.cornerPoints[(i + 1) % barcode.cornerPoints.length];
+            canvas.drawLine(
+                    translateX(from.x),
+                    translateY(from.y),
+                    translateX(to.x),
+                    translateY(to.y),
+                    mRectPaint
+            );
+        }
 
         // Draws a label at the bottom of the barcode indicate the barcode value that was detected.
+        Rect rect = barcode.getBoundingBox();
         canvas.drawText(barcode.rawValue, rect.left, rect.bottom, mTextPaint);
     }
 }
