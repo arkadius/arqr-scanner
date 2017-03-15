@@ -15,8 +15,11 @@
  */
 package pl.ingensol.arqrscanner;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -41,8 +44,13 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
     private static int mCurrentColorIndex = 0;
 
     private Paint mRectPaint;
+    private Paint mImagePaint;
     private Paint mTextPaint;
     private volatile Barcode mBarcode;
+
+    private Bitmap mBitmap;
+    private float[] mSrc = new float[8];
+    private float[] mDst = new float[8];
 
     BarcodeGraphic(GraphicOverlay overlay) {
         super(overlay);
@@ -55,9 +63,25 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         mRectPaint.setStyle(Paint.Style.STROKE);
         mRectPaint.setStrokeWidth(4.0f);
 
+        mImagePaint = new Paint();
+
         mTextPaint = new Paint();
         mTextPaint.setColor(selectedColor);
         mTextPaint.setTextSize(36.0f);
+
+        mBitmap = BitmapFactory.decodeResource(overlay.getResources(), R.drawable.beach);
+
+        mSrc[0] = 0;
+        mSrc[1] = 0;
+
+        mSrc[2] = mBitmap.getWidth();
+        mSrc[3] = 0;
+
+        mSrc[4] = mBitmap.getWidth();
+        mSrc[5] = mBitmap.getHeight();
+
+        mSrc[6] = 0;
+        mSrc[7] = mBitmap.getHeight();
     }
 
     public int getId() {
@@ -91,18 +115,26 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
             return;
         }
 
+        for (int i = 0; i < barcode.cornerPoints.length; i++) {
+            Point point = barcode.cornerPoints[i];
+            mDst[i * 2] = translateX(point.x);
+            mDst[i * 2 + 1] = translateY(point.y);
+        }
+
         // Draws the bounding box around the barcode.
         for (int i = 0; i < barcode.cornerPoints.length; i++) {
-            Point from = barcode.cornerPoints[i];
-            Point to = barcode.cornerPoints[(i + 1) % barcode.cornerPoints.length];
             canvas.drawLine(
-                    translateX(from.x),
-                    translateY(from.y),
-                    translateX(to.x),
-                    translateY(to.y),
+                    mDst[i * 2],
+                    mDst[i * 2 + 1],
+                    mDst[(i + 1) % barcode.cornerPoints.length * 2],
+                    mDst[(i + 1) % barcode.cornerPoints.length * 2 + 1],
                     mRectPaint
             );
         }
+
+        Matrix matrix = new Matrix();
+        matrix.setPolyToPoly(mSrc, 0, mDst, 0, 4);
+        canvas.drawBitmap(mBitmap, matrix, mImagePaint);
 
         // Draws a label at the bottom of the barcode indicate the barcode value that was detected.
         Rect rect = barcode.getBoundingBox();
