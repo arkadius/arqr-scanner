@@ -106,15 +106,15 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
             mDst[i * 2] = translateX(point.x);
             mDst[i * 2 + 1] = translateY(point.y);
         }
-        if (presentedObject instanceof PresentedImage) {
-            drawImage(canvas, (PresentedImage) presentedObject);
+        if (presentedObject.getKey() instanceof PresentedImageKey) {
+            drawImage(canvas, presentedObject);
         } else {
-            drawRawText(canvas, (PresentedText) presentedObject);
+            drawRawText(canvas, presentedObject);
         }
     }
 
-    private void drawImage(Canvas canvas, PresentedImage presentedImage) {
-        Bitmap bitmap = presentedImage.getBitmap();
+    private void drawImage(Canvas canvas, PresentedObject presentedImage) {
+        Bitmap bitmap = (Bitmap) presentedImage.getLoadedValue();
 
         mSrc[0] = 0;
         mSrc[1] = 0;
@@ -133,7 +133,7 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         canvas.drawBitmap(bitmap, matrix, mImagePaint);
     }
 
-    private void drawRawText(Canvas canvas, PresentedText presentedText) {
+    private void drawRawText(Canvas canvas, PresentedObject presentedText) {
         mPath.reset();
         mPath.moveTo(mDst[0], mDst[1]);
 
@@ -145,7 +145,8 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         canvas.drawPath(mPath, mRectPaint);
 
         Rect rect = presentedText.getBarcode().getBoundingBox();
-        canvas.drawText(presentedText.getText(), translateX(rect.left), translateY(rect.top + FONT_HEIGHT), mTextPaint);
+        PresentedTextKey key = (PresentedTextKey) presentedText.getKey();
+        canvas.drawText(key.getText(), translateX(rect.left), translateY(rect.top + FONT_HEIGHT), mTextPaint);
     }
 
 }
