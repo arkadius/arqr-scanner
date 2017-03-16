@@ -62,16 +62,19 @@ class BarcodeGraphicTracker extends Tracker<Barcode> {
         if (barcode != null) {
             URL url = parseUrl(barcode);
 
-            PresentedObjectKey key = null;
+            PresentedObject object = null;
             if (url != null) {
-                key = new PresentedImageKey(url);
+                PresentedObjectKey key = new PresentedImageKey(url);
+                Object loadedValue = mLoadedValueMemo.getLoadedValue(key);
+                if (loadedValue == null) {
+                    key = new PresentedTextKey(barcode.rawValue);
+                }
+                object = new PresentedObject(key, barcode, loadedValue);
             } else {
-                key = new PresentedTextKey(barcode.rawValue);
+                PresentedObjectKey key = new PresentedTextKey(barcode.rawValue);
+                object = new PresentedObject(key, barcode, null);
             }
-
-            Object loadedValue = mLoadedValueMemo.getLoadedValue(key);
-
-            mGraphic.updateItem(new PresentedObject(key, barcode, loadedValue));
+            mGraphic.updateItem(object);
         } else {
             mGraphic.updateItem(null);
         }
