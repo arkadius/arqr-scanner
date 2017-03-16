@@ -334,7 +334,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         Barcode best = null;
         float bestDistance = Float.MAX_VALUE;
         for (BarcodeGraphic graphic : mGraphicOverlay.getGraphics()) {
-            Barcode barcode = graphic.getBarcode();
+            Barcode barcode = graphic.getPresentedObject().getBarcode();
             if (barcode.getBoundingBox().contains((int) x, (int) y)) {
                 // Exact hit, no need to keep looking.
                 best = barcode;
