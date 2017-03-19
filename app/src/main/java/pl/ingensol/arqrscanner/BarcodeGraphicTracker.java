@@ -99,13 +99,12 @@ class BarcodeGraphicTracker extends Tracker<Barcode> {
     }
 
     /**
-     * Hide the graphic when the corresponding object was not detected.  This can happen for
-     * intermediate frames temporarily, for example if the object was momentarily blocked from
-     * view.
+     * This can happen for intermediate frames temporarily, for example if the object was momentarily
+     * blocked from view.
      */
     @Override
     public void onMissing(Detector.Detections<Barcode> detectionResults) {
-        mOverlay.remove(mGraphic);
+        // do not hide graphics to avoid flickering of image
     }
 
     /**
