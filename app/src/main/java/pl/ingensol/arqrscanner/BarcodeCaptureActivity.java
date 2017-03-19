@@ -30,6 +30,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -90,16 +91,10 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         }
 
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
-
-        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
-                Snackbar.LENGTH_LONG)
-                .show();
     }
 
     /**
-     * Handles the requesting of the camera permission.  This includes
-     * showing a "Snackbar" message of why the permission is needed then
-     * sending the request.
+     * Handles the requesting of the camera permission.
      */
     private void requestCameraPermission() {
         Log.w(TAG, "Camera permission is not granted. Requesting permission");
@@ -167,10 +162,11 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         // Creates and starts the camera.  Note that this uses a higher resolution in comparison
         // to other detection examples to enable the barcode detector to detect small barcodes
         // at long distances.
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
         mCameraSource = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
-                .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
-                .setRequestedFps(15.0f)
+                // for a good ratio - from https://github.com/googlesamples/android-vision/issues/23
+                .setRequestedPreviewSize(metrics.heightPixels, metrics.widthPixels)
                 .setAutoFocusEnabled(true)
                 .build();
     }
@@ -273,7 +269,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         };
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Multitracker sample")
+        builder.setTitle("AR QR Code Scanner")
                 .setMessage(R.string.no_camera_permission)
                 .setPositiveButton(R.string.ok, listener)
                 .show();

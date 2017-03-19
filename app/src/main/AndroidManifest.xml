@@ -15,7 +15,7 @@
         android:icon="@drawable/icon"
         android:label="AR QR Code Scanner"
         android:supportsRtl = "true"
-        android:theme="@style/Theme.AppCompat" >
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen" >
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
