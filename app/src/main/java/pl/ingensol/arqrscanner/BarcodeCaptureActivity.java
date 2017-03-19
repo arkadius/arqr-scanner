@@ -25,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -34,6 +35,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.widget.Toast;
 
@@ -66,6 +68,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private CameraSource mCameraSource;
     private CameraSourcePreview mPreview;
     private GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
+    /**
+     * An {@link OrientationEventListener} used to determine when device rotation has occurred.
+     * This is mainly necessary for when the device is rotated by 180 degrees, in which case
+     * onCreate or onConfigurationChanged is not called as the view dimensions remain the same,
+     * but the orientation of the has changed, and thus the preview rotation must be updated.
+     */
+    private OrientationEventListener mOrientationListener;
 
     // helper objects for detecting taps and pinches.
     private GestureDetector gestureDetector;
@@ -80,6 +89,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay<BarcodeGraphic>) findViewById(R.id.graphicOverlay);
+
+        mOrientationListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                mGraphicOverlay.onOrientationChanged(orientation);
+            }
+        };
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -201,6 +217,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         startCameraSource();
+        if (mOrientationListener != null && mOrientationListener.canDetectOrientation()) {
+            mOrientationListener.enable();
+        }
     }
 
     /**
@@ -208,10 +227,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
      */
     @Override
     protected void onPause() {
-        super.onPause();
+        if (mOrientationListener != null) {
+            mOrientationListener.disable();
+        }
         if (mPreview != null) {
             mPreview.stop();
         }
+        super.onPause();
     }
 
     /**

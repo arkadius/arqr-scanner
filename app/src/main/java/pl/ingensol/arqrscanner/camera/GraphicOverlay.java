@@ -17,6 +17,7 @@ package pl.ingensol.arqrscanner.camera;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.util.AttributeSet;
 import android.view.View;
 import com.google.android.gms.vision.CameraSource;
@@ -51,6 +52,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
     private int mPreviewHeight;
     private float mHeightScaleFactor = 1.0f;
     private int mFacing = CameraSource.CAMERA_FACING_BACK;
+    private Matrix mRotationMatrix = new Matrix();
     private Set<T> mGraphics = new HashSet<>();
 
     /**
@@ -112,6 +114,10 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
          */
         public float translateY(float y) {
             return scaleY(y);
+        }
+
+        public Matrix getRotationMatrix() {
+            return mOverlay.mRotationMatrix;
         }
 
         public void postInvalidate() {
@@ -188,6 +194,12 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
             mFacing = facing;
         }
         postInvalidate();
+    }
+
+    public void onOrientationChanged(int orientation) {
+        synchronized (mLock) {
+            this.mRotationMatrix.setRotate(orientation);
+        }
     }
 
     /**

@@ -22,6 +22,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Rect;
 
 import pl.ingensol.arqrscanner.camera.GraphicOverlay;
@@ -33,6 +34,7 @@ import pl.ingensol.arqrscanner.camera.GraphicOverlay;
 public class BarcodeGraphic extends GraphicOverlay.Graphic {
 
     private final int POINTS_IN_RECT_COUNT = 4;
+    private final int POINTS_IN_RECT_XY_COUNT = POINTS_IN_RECT_COUNT * 2;
     private final int FONT_HEIGHT = 36;
     private int mId;
 
@@ -40,8 +42,10 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
     private Paint mImagePaint;
     private Paint mTextPaint;
 
-    private float[] mSrc;
-    private float[] mDst;
+    private float[] mImagePoints;
+    private float[] mDstPoints;
+    private float[] mTranslatedPoints;
+    private float[] mRotatedPoints;
 
     private Path mPath;
 
@@ -60,8 +64,10 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         mTextPaint.setColor(Color.BLACK);
         mTextPaint.setTextSize(FONT_HEIGHT);
 
-        mSrc = new float[POINTS_IN_RECT_COUNT * 2];
-        mDst = new float[POINTS_IN_RECT_COUNT * 2];
+        mImagePoints = new float[POINTS_IN_RECT_XY_COUNT];
+        mDstPoints = new float[POINTS_IN_RECT_XY_COUNT];
+        mTranslatedPoints = new float[POINTS_IN_RECT_XY_COUNT];
+        mRotatedPoints = new float[POINTS_IN_RECT_XY_COUNT];
 
         mPath = new Path();
     }
@@ -100,12 +106,7 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
     }
 
     private void drawObject(Canvas canvas, PresentedObject presentedObject) {
-        Point[] cornerPoints = presentedObject.getBarcode().cornerPoints;
-        for (int i = 0; i < cornerPoints.length; i++) {
-            Point point = cornerPoints[i];
-            mDst[i * 2] = translateX(point.x);
-            mDst[i * 2 + 1] = translateY(point.y);
-        }
+        computeDestinationPoints(presentedObject, mDstPoints);
         if (presentedObject.getKey() instanceof PresentedImageKey) {
             drawImage(canvas, presentedObject);
         } else {
@@ -113,34 +114,93 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         }
     }
 
+    private void computeDestinationPoints(PresentedObject presentedObject, float[] dst) {
+        translate(presentedObject.getBarcode().cornerPoints, mTranslatedPoints);
+        int topLeftPointXyIndex = findTopLeftPointXyIndex(mTranslatedPoints);
+        copyShifted(mTranslatedPoints, dst, topLeftPointXyIndex);
+    }
+
+    private void translate(Point[] src, float[] dst) {
+        for (int i = 0; i < POINTS_IN_RECT_COUNT; i++) {
+            Point point = src[i];
+            dst[i * 2] = translateX(point.x);
+            dst[i * 2 + 1] = translateY(point.y);
+        }
+    }
+
+    private int findTopLeftPointXyIndex(float[] points) {
+        PointF center = findCenter(points);
+        Matrix rotationWithRespectToCenterMatrix = computeRotationWithRespectToPointMatrix(getRotationMatrix(), center);
+        rotationWithRespectToCenterMatrix.mapPoints(mRotatedPoints, points);
+
+        float minXY = Float.MAX_VALUE;
+        int topLeftPoint = -1;
+        for (int i = 0; i < POINTS_IN_RECT_COUNT; i++) {
+            float x = mRotatedPoints[i * 2];
+            float y = mRotatedPoints[i * 2 + 1];
+            float pointXY = x * x + y * y;
+            if (pointXY < minXY) {
+                minXY = pointXY;
+                topLeftPoint = i;
+            }
+        }
+
+        return topLeftPoint * 2;
+    }
+
+    private Matrix computeRotationWithRespectToPointMatrix(Matrix rotationMatrix, PointF center) {
+        Matrix rotationWithRespectToCenterMatrix = new Matrix(rotationMatrix);
+        rotationWithRespectToCenterMatrix.preTranslate(-center.x, -center.y);
+        rotationWithRespectToCenterMatrix.postTranslate(center.x, center.y);
+        return rotationWithRespectToCenterMatrix;
+    }
+
+    private PointF findCenter(float[] points) {
+        float xSum = 0;
+        float ySum = 0;
+        for (int i = 0; i < POINTS_IN_RECT_COUNT; i++) {
+            float x = points[i * 2];
+            float y = points[i * 2 + 1];
+            xSum += x;
+            ySum += y;
+        }
+        return new PointF(xSum / POINTS_IN_RECT_COUNT, ySum / POINTS_IN_RECT_COUNT);
+    }
+
+    private void copyShifted(float[] src, float[] dst, int shift) {
+        int pointsFromShiftToEnd = POINTS_IN_RECT_XY_COUNT - shift;
+        System.arraycopy(src, shift, dst, 0,                    pointsFromShiftToEnd);
+        System.arraycopy(src, 0,     dst, pointsFromShiftToEnd, shift);
+    }
+
     private void drawImage(Canvas canvas, PresentedObject presentedImage) {
         Bitmap bitmap = (Bitmap) presentedImage.getLoadedValue();
 
-        mSrc[0] = 0;
-        mSrc[1] = 0;
+        mImagePoints[0] = 0;
+        mImagePoints[1] = 0;
 
-        mSrc[2] = bitmap.getWidth();
-        mSrc[3] = 0;
+        mImagePoints[2] = bitmap.getWidth();
+        mImagePoints[3] = 0;
 
-        mSrc[4] = bitmap.getWidth();
-        mSrc[5] = bitmap.getHeight();
+        mImagePoints[4] = bitmap.getWidth();
+        mImagePoints[5] = bitmap.getHeight();
 
-        mSrc[6] = 0;
-        mSrc[7] = bitmap.getHeight();
+        mImagePoints[6] = 0;
+        mImagePoints[7] = bitmap.getHeight();
 
         Matrix matrix = new Matrix();
-        matrix.setPolyToPoly(mSrc, 0, mDst, 0, POINTS_IN_RECT_COUNT);
+        matrix.setPolyToPoly(mImagePoints, 0, mDstPoints, 0, POINTS_IN_RECT_COUNT);
         canvas.drawBitmap(bitmap, matrix, mImagePaint);
     }
 
     private void drawRawText(Canvas canvas, PresentedObject presentedText) {
         mPath.reset();
-        mPath.moveTo(mDst[0], mDst[1]);
+        mPath.moveTo(mDstPoints[0], mDstPoints[1]);
 
         for (int i = 0; i < POINTS_IN_RECT_COUNT; i++) {
             mPath.lineTo(
-                    mDst[(i + 1) % POINTS_IN_RECT_COUNT * 2],
-                    mDst[(i + 1) % POINTS_IN_RECT_COUNT * 2 + 1]);
+                    mDstPoints[(i + 1) % POINTS_IN_RECT_XY_COUNT],
+                    mDstPoints[(i + 1) % POINTS_IN_RECT_XY_COUNT + 1]);
         }
         canvas.drawPath(mPath, mRectPaint);
 
