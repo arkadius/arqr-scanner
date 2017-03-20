@@ -25,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -47,6 +48,7 @@ import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.Timer;
 
 import pl.ingensol.arqrscanner.camera.CameraSourcePreview;
@@ -169,15 +171,63 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                         .setBarcodeFormats(Barcode.QR_CODE)
                         .build();
         Timer timer = new Timer();
+
         TrackersCountListener trackersCountListener = new TrackersCountListener(timer) {
             @Override
             protected void onTrackersCountChanged(int size) {
                 if (size == 0) {
-                    mGraphicOverlay.enableContinuousFocus();
+                    enableContinuousFocus();
                 } else if (size > 0) {
-                    mGraphicOverlay.disableContinuousFocus();
+                    disableContinuousFocus();
                 }
             }
+
+            private void enableContinuousFocus() {
+                Camera camera = getCamera(mCameraSource);
+                if (camera != null) {
+                    Camera.Parameters parameters = camera.getParameters();
+                    if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+                        camera.setParameters(parameters);
+                    }
+                }
+            }
+
+            private void disableContinuousFocus() {
+                Camera camera = getCamera(mCameraSource);
+                if (camera != null) {
+                    Camera.Parameters parameters = camera.getParameters();
+                    if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
+                        camera.setParameters(parameters);
+                    } else if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                        camera.setParameters(parameters);
+                    }
+                }
+            }
+
+            // from https://github.com/googlesamples/android-vision/issues/5
+            private Camera getCamera(@NonNull CameraSource cameraSource)  {
+                Field[] declaredFields = CameraSource.class.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    if (field.getType() == Camera.class) {
+                        field.setAccessible(true);
+                        try {
+                            Camera camera = (Camera) field.get(cameraSource);
+                            if (camera != null) {
+                                return camera;
+                            }
+                        } catch (IllegalAccessException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                }
+
+                return null;
+            }
+
         };
         BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay, trackersCountListener, timer);
         barcodeDetector.setProcessor(
