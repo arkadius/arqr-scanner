@@ -24,6 +24,8 @@ import com.google.android.gms.vision.barcode.Barcode;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import pl.ingensol.arqrscanner.camera.GraphicOverlay;
 
@@ -113,7 +115,14 @@ class BarcodeGraphicTracker extends Tracker<Barcode> {
      */
     @Override
     public void onDone() {
-        mOverlay.remove(mGraphic);
+        Log.i("barcode", "onDone");
+        Timer timer = new Timer();
+        // hide graphics after a while to have a chance to appear in other place before flickering
+        timer.schedule(new TimerTask() {
+            synchronized public void run() {
+                mOverlay.remove(mGraphic);
+            }
+        }, 300);
     }
 
 }

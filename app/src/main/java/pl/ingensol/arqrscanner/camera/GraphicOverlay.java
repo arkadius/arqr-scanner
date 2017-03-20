@@ -20,11 +20,12 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.util.AttributeSet;
 import android.view.View;
+
 import com.google.android.gms.vision.CameraSource;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 /**
@@ -53,7 +54,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
     private float mHeightScaleFactor = 1.0f;
     private int mFacing = CameraSource.CAMERA_FACING_BACK;
     private Matrix mRotationMatrix = new Matrix();
-    private Set<T> mGraphics = new HashSet<>();
+    private List<T> mGraphics = new ArrayList<>();
 
     /**
      * Base class for a custom graphics object to be rendered within the graphic overlay.  Subclass
@@ -154,7 +155,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
      */
     public void remove(T graphic) {
         synchronized (mLock) {
-            mGraphics.remove(graphic);
+            mGraphics.removeAll(Collections.singletonList(graphic));
         }
         postInvalidate();
     }
@@ -215,7 +216,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
                 mHeightScaleFactor = (float) canvas.getHeight() / (float) mPreviewHeight;
             }
 
-            for (Graphic graphic : mGraphics) {
+            for (T graphic : mGraphics) {
                 graphic.draw(canvas);
             }
         }
