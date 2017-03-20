@@ -47,6 +47,7 @@ import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
+import java.util.Timer;
 
 import pl.ingensol.arqrscanner.camera.CameraSourcePreview;
 import pl.ingensol.arqrscanner.camera.GraphicOverlay;
@@ -167,7 +168,18 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                 new BarcodeDetector.Builder(context)
                         .setBarcodeFormats(Barcode.QR_CODE)
                         .build();
-        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay);
+        Timer timer = new Timer();
+        TrackersCountListener trackersCountListener = new TrackersCountListener(timer) {
+            @Override
+            protected void onTrackersCountChanged(int size) {
+                if (size == 0) {
+                    mGraphicOverlay.enableContinuousFocus();
+                } else if (size > 0) {
+                    mGraphicOverlay.disableContinuousFocus();
+                }
+            }
+        };
+        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay, trackersCountListener, timer);
         barcodeDetector.setProcessor(
                 new MultiProcessor.Builder<>(barcodeFactory).build());
 

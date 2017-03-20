@@ -36,14 +36,22 @@ import pl.ingensol.arqrscanner.camera.GraphicOverlay;
  * goes away.
  */
 class BarcodeGraphicTracker extends Tracker<Barcode> {
-    private GraphicOverlay<BarcodeGraphic> mOverlay;
-    private BarcodeGraphic mGraphic;
-    private LoadedValueMemo mLoadedValueMemo;
 
-    BarcodeGraphicTracker(GraphicOverlay<BarcodeGraphic> overlay, BarcodeGraphic graphic, LoadedValueMemo loadedValueMemo) {
+    private static final int HIDE_AFTER_DONE_DELAY_MS = 300;
+
+    private final GraphicOverlay<BarcodeGraphic> mOverlay;
+    private final BarcodeGraphic mGraphic;
+    private final LoadedValueMemo mLoadedValueMemo;
+    private final TrackersCountListener mTrackersCountListener;
+    private final Timer mTimer;
+
+    BarcodeGraphicTracker(GraphicOverlay<BarcodeGraphic> overlay, BarcodeGraphic graphic,
+                          LoadedValueMemo loadedValueMemo, TrackersCountListener trackersCountListener, Timer timer) {
         mOverlay = overlay;
         mGraphic = graphic;
         mLoadedValueMemo = loadedValueMemo;
+        mTrackersCountListener = trackersCountListener;
+        mTimer = timer;
     }
 
     /**
@@ -59,6 +67,7 @@ class BarcodeGraphicTracker extends Tracker<Barcode> {
      */
     @Override
     public void onUpdate(Detector.Detections<Barcode> detectionResults, Barcode barcode) {
+        mTrackersCountListener.onTrackerEnabled(this);
         mOverlay.add(mGraphic);
 
         if (barcode != null) {
@@ -115,14 +124,13 @@ class BarcodeGraphicTracker extends Tracker<Barcode> {
      */
     @Override
     public void onDone() {
-        Log.i("barcode", "onDone");
-        Timer timer = new Timer();
-        // hide graphics after a while to have a chance to appear in other place before flickering
-        timer.schedule(new TimerTask() {
+        // hide graphics after a while to have a chance for barcode to be handled by other tracker to avoid flickering
+        mTimer.schedule(new TimerTask() {
             synchronized public void run() {
+                mTrackersCountListener.onTrackerDone(BarcodeGraphicTracker.this);
                 mOverlay.remove(mGraphic);
             }
-        }, 300);
+        }, HIDE_AFTER_DONE_DELAY_MS);
     }
 
 }

@@ -19,6 +19,8 @@ import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.Tracker;
 import com.google.android.gms.vision.barcode.Barcode;
 
+import java.util.Timer;
+
 import pl.ingensol.arqrscanner.camera.GraphicOverlay;
 
 /**
@@ -27,17 +29,21 @@ import pl.ingensol.arqrscanner.camera.GraphicOverlay;
  */
 class BarcodeTrackerFactory implements MultiProcessor.Factory<Barcode> {
 
-    private GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
-    private LoadedValueMemo mLoadedValueMemo = new LoadedValueMemo();
+    private final GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
+    private final TrackersCountListener mTrackersCountListener;
+    private final Timer mTimer;
+    private final LoadedValueMemo mLoadedValueMemo = new LoadedValueMemo();
 
-    BarcodeTrackerFactory(GraphicOverlay<BarcodeGraphic> barcodeGraphicOverlay) {
+    BarcodeTrackerFactory(GraphicOverlay<BarcodeGraphic> barcodeGraphicOverlay, TrackersCountListener trackersCountListener, Timer timer) {
         mGraphicOverlay = barcodeGraphicOverlay;
+        mTrackersCountListener = trackersCountListener;
+        mTimer = timer;
     }
 
     @Override
     public Tracker<Barcode> create(Barcode barcode) {
         BarcodeGraphic graphic = new BarcodeGraphic(mGraphicOverlay);
-        return new BarcodeGraphicTracker(mGraphicOverlay, graphic, mLoadedValueMemo);
+        return new BarcodeGraphicTracker(mGraphicOverlay, graphic, mLoadedValueMemo, mTrackersCountListener, mTimer);
     }
 
 }

@@ -18,6 +18,8 @@ package pl.ingensol.arqrscanner.camera;
 import android.Manifest;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.hardware.Camera;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresPermission;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -29,6 +31,7 @@ import com.google.android.gms.common.images.Size;
 import com.google.android.gms.vision.CameraSource;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 public class CameraSourcePreview extends ViewGroup {
     private static final String TAG = "CameraSourcePreview";
@@ -89,6 +92,7 @@ public class CameraSourcePreview extends ViewGroup {
     private void startIfReady() throws IOException, SecurityException {
         if (mStartRequested && mSurfaceAvailable) {
             mCameraSource.start(mSurfaceView.getHolder());
+            Camera camera = getCamera(mCameraSource);
             if (mOverlay != null) {
                 Size size = mCameraSource.getPreviewSize();
                 int min = Math.min(size.getWidth(), size.getHeight());
@@ -96,14 +100,35 @@ public class CameraSourcePreview extends ViewGroup {
                 if (isPortraitMode()) {
                     // Swap width and height sizes when in portrait, since it will be rotated by
                     // 90 degrees
-                    mOverlay.setCameraInfo(min, max, mCameraSource.getCameraFacing());
+                    mOverlay.setCameraInfo(min, max, mCameraSource.getCameraFacing(), camera);
                 } else {
-                    mOverlay.setCameraInfo(max, min, mCameraSource.getCameraFacing());
+                    mOverlay.setCameraInfo(max, min, mCameraSource.getCameraFacing(), camera);
                 }
                 mOverlay.clear();
             }
             mStartRequested = false;
         }
+    }
+
+
+    private Camera getCamera(@NonNull CameraSource cameraSource)  {
+        Field[] declaredFields = CameraSource.class.getDeclaredFields();
+
+        for (Field field : declaredFields) {
+            if (field.getType() == Camera.class) {
+                field.setAccessible(true);
+                try {
+                    Camera camera = (Camera) field.get(cameraSource);
+                    if (camera != null) {
+                        return camera;
+                    }
+                } catch (IllegalAccessException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+
+        return null;
     }
 
     private class SurfaceCallback implements SurfaceHolder.Callback {

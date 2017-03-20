@@ -18,6 +18,7 @@ package pl.ingensol.arqrscanner.camera;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -53,6 +54,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
     private int mPreviewHeight;
     private float mHeightScaleFactor = 1.0f;
     private int mFacing = CameraSource.CAMERA_FACING_BACK;
+    private Camera mCamera;
     private Matrix mRotationMatrix = new Matrix();
     private List<T> mGraphics = new ArrayList<>();
 
@@ -145,6 +147,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
      */
     public void add(T graphic) {
         synchronized (mLock) {
+            mGraphics.remove(graphic);
             mGraphics.add(graphic);
         }
         postInvalidate();
@@ -155,7 +158,7 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
      */
     public void remove(T graphic) {
         synchronized (mLock) {
-            mGraphics.removeAll(Collections.singletonList(graphic));
+            mGraphics.remove(graphic);
         }
         postInvalidate();
     }
@@ -188,13 +191,37 @@ public class GraphicOverlay<T extends GraphicOverlay.Graphic> extends View {
      * Sets the camera attributes for size and facing direction, which informs how to transform
      * image coordinates later.
      */
-    public void setCameraInfo(int previewWidth, int previewHeight, int facing) {
+    public void setCameraInfo(int previewWidth, int previewHeight, int facing, Camera camera) {
         synchronized (mLock) {
             mPreviewWidth = previewWidth;
             mPreviewHeight = previewHeight;
             mFacing = facing;
+            mCamera = camera;
         }
         postInvalidate();
+    }
+
+    public void enableContinuousFocus() {
+        if (mCamera != null) {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+                mCamera.setParameters(parameters);
+            }
+        }
+    }
+
+    public void disableContinuousFocus() {
+        if (mCamera != null) {
+            Camera.Parameters parameters = mCamera.getParameters();
+            if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_FIXED)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_FIXED);
+                mCamera.setParameters(parameters);
+            } else if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+                mCamera.setParameters(parameters);
+            }
+        }
     }
 
     public void onOrientationChanged(int orientation) {
