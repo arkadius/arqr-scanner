@@ -10,4 +10,7 @@ pipelines:
     - step:
         script: # Modify the commands below to build your repository.
           - (while sleep 3; do echo "y"; done) | android update sdk --filter "extra-android-m2repository" --no-ui -a # Grab the Android Support Repo which isn't included in the container
+          - mkdir -p "$ANDROID_SDK/licenses"
+          - echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > "$ANDROID_SDK/licenses/android-sdk-license"
+          - echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_SDK/licenses/android-sdk-preview-license"
           - ./gradlew assembleDebug
