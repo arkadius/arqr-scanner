@@ -3,10 +3,11 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: java:8
+image: uber/android-build-environment:latest
 
 pipelines:
   default:
     - step:
         script: # Modify the commands below to build your repository.
-          - ./gradlew build
+          - echo y | android update sdk --filter "extra-android-m2repository" --no-ui -a # Grab the Android Support Repo which isn't included in the container
+          - ./gradlew assembleDebug
