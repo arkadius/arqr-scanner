@@ -9,5 +9,5 @@ pipelines:
   default:
     - step:
         script: # Modify the commands below to build your repository.
-          - (while sleep 3; do echo "y"; done) | android update sdk --filter "build-tools-25.0.2,android-25,extra-google-m2repository" --no-ui -a
+          - (while sleep 3; do echo "y"; done) | android update sdk --filter "build-tools-25.0.2,android-25,extra-google-m2repository,extra-android-m2repository" --no-ui -a
           - ./gradlew assembleDebug
